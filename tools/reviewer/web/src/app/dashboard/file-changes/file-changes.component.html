@@ -13,7 +13,7 @@
   <code-block
     [fileContent]="textDiff.getLeftFileContents()"
     [isNewCode]="false"
-    [changes]="changes"
+    [textChanges]="textDiff.getLeftChangeList()"
     [language]="fileChangesService.getLanguage(file.getFilename())"
   ></code-block>
 
@@ -21,7 +21,7 @@
   <code-block
     [fileContent]="textDiff.getRightFileContents()"
     [isNewCode]="true"
-    [changes]="changes"
+    [textChanges]="textDiff.getRightChangeList()"
     [threads]="localThreads"
     [language]="fileChangesService.getLanguage(file.getFilename())"
   ></code-block>

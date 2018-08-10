@@ -1,5 +1,9 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { ActivatedRoute, ActivatedRouteSnapshot } from '@angular/router';
+import {
+  ActivatedRoute,
+  ActivatedRouteSnapshot,
+  Router
+} from '@angular/router';
 import { Subscription } from 'rxjs';
 
 import {
@@ -27,7 +31,6 @@ import { FileChangesService } from './file-changes.service';
 export class FileChangesComponent implements OnInit, OnDestroy {
   isLoading: boolean = true;
   textDiff: TextDiff;
-  changes: number[];
   localThreads: Thread[];
   diff: Diff;
   addCommentSubscription: Subscription;
@@ -37,6 +40,7 @@ export class FileChangesComponent implements OnInit, OnDestroy {
 
   constructor(
     private activatedRoute: ActivatedRoute,
+    private router: Router,
     private differenceService: DifferenceService,
     private firebaseService: FirebaseService,
     private fileChangesService: FileChangesService,
@@ -68,6 +72,10 @@ export class FileChangesComponent implements OnInit, OnDestroy {
 
   getDiff(diffId: string): void {
     this.firebaseService.getDiff(diffId).subscribe(diff => {
+      if (!diff) {
+        this.diffNotFound();
+        return;
+      }
       this.diff = diff;
       this.localThreads = this.diff
         .getThreadList()
@@ -83,8 +91,28 @@ export class FileChangesComponent implements OnInit, OnDestroy {
       .subscribe(branchInfo => {
         this.branchInfo = branchInfo;
         this.file = this.getFile(this.file.getFilename(), this.branchInfo);
+        if (!this.file) {
+          this.fileNotFound();
+          return;
+        }
         this.getFileChanges(this.file);
       });
+  }
+
+  fileNotFound(): void {
+    this.leavePage('/diff/' + this.diff.getId(), 'File not found');
+  }
+
+  diffNotFound(): void {
+    this.leavePage('/', 'Diff Id is invalid');
+  }
+
+  // Show error message and open parent page
+  leavePage(url: string, message: string): void {
+    this.notificationService.error(message);
+    setTimeout(() => {
+      this.router.navigate([url]);
+    }, this.notificationService.duration);
   }
 
   // Get file from branchInfo by the filename
@@ -115,13 +143,6 @@ export class FileChangesComponent implements OnInit, OnDestroy {
       .getFileChanges(leftFile, rightFile)
       .subscribe(textDiffResponse => {
         this.textDiff = textDiffResponse.getTextDiff();
-
-        // TODO: use changes from localserver instead
-        this.changes = this.differenceService.compare(
-          this.textDiff.getLeftFileContents(),
-          this.textDiff.getRightFileContents(),
-        );
-
         this.isLoading = false;
       });
   }

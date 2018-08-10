@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { Subscription } from 'rxjs/Subscription';
 
-import { Comment, Thread } from '@/shared/proto';
+import { Comment, Thread, TextChange, ChangeType } from '@/shared/proto';
 import { HighlightService } from '@/shared/services';
 import { FileChangesService } from '../file-changes.service';
 
@@ -43,7 +43,7 @@ export class CodeBlockComponent implements OnInit, OnDestroy {
 
   @Input() fileContent: string;
   @Input() isNewCode: boolean;
-  @Input() changes: number[];
+  @Input() textChanges: TextChange[];
   @Input() language: string;
   @Input() threads: Thread[];
 
@@ -85,7 +85,7 @@ export class CodeBlockComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.initLines(this.fileContent);
-    this.initChanges(this.changes);
+    this.initChanges(this.textChanges);
     this.addComments(this.threads);
     this.isComponentInit = true;
   }
@@ -129,12 +129,20 @@ export class CodeBlockComponent implements OnInit, OnDestroy {
 
   // Set which lines are changed
   // Bootstrap method.
-  initChanges(changes: number[]): void {
-    if (!changes) {
+  initChanges(textChanges: TextChange[]): void {
+    if (!textChanges) {
       return;
     }
-    for (const lineNumber of changes) {
-      this.lines[lineNumber].isChanged = true;
+
+    for (let textChange of textChanges) {
+      switch (textChange.getType()) {
+        case ChangeType.ADD:
+        case ChangeType.DELETE:
+          this.lines[textChange.getLinenumber()].isChanged = true;
+          break;
+        case ChangeType.LINE_PLACEHOLDER:
+          // TODO: add placeholder
+      }
     }
   }
 
